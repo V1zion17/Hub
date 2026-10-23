@@ -1,0 +1,1487 @@
+<!DOCTYPE html>
+<html lang="fr" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NexDrop — Portail de Distribution & Releases</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Inter & JetBrains Mono -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    },
+                    colors: {
+                        geist: {
+                            bg: '#000000',
+                            surface: '#0a0a0a',
+                            card: '#111111',
+                            border: '#222222',
+                            borderHover: '#444444',
+                            text: '#ededed',
+                            muted: '#888888',
+                            accent: '#0070f3',
+                            success: '#10b981'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            background-color: #000000;
+            color: #ededed;
+            font-family: 'Inter', sans-serif;
+            overflow-x: hidden;
+        }
+
+        /* Subtle Vercel-style background grid */
+        .bg-grid-pattern {
+            background-size: 32px 32px;
+            background-image: 
+                linear-gradient(to right, rgba(255, 255, 255, 0.035) 1px, transparent 1px),
+                linear-gradient(to bottom, rgba(255, 255, 255, 0.035) 1px, transparent 1px);
+        }
+
+        .radial-glow {
+            background: radial-gradient(circle at 50% 0%, rgba(255, 255, 255, 0.07) 0%, rgba(0, 112, 243, 0.03) 35%, transparent 70%);
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #050505;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #262626;
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #404040;
+        }
+
+        /* Smooth transitions */
+        .card-transition {
+            transition: border-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        .card-transition:hover {
+            border-color: #444444;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.6);
+        }
+
+        @keyframes pulse-fast {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.4; }
+        }
+        .animate-pulse-fast {
+            animation: pulse-fast 1.4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col bg-grid-pattern relative selection:bg-white selection:text-black">
+
+    <!-- Ambient Top Glow -->
+    <div class="fixed inset-0 pointer-events-none radial-glow z-0"></div>
+
+    <!-- Navigation Bar -->
+    <header class="sticky top-0 z-30 backdrop-blur-md bg-black/80 border-b border-geist-border">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <!-- Brand Logo -->
+            <div class="flex items-center space-x-4">
+                <a href="#" onclick="switchView('public'); return false;" class="flex items-center space-x-2.5 group">
+                    <div class="w-8 h-8 rounded-lg bg-white text-black flex items-center justify-center font-bold text-lg shadow-sm group-hover:scale-105 transition-transform">
+                        <svg class="w-4 h-4 fill-current" viewBox="0 0 24 24">
+                            <path d="M12 2L2 19.7778H22L12 2Z"/>
+                        </svg>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <span class="font-semibold tracking-tight text-white text-lg">NexDrop</span>
+                        <span class="text-[11px] font-mono uppercase px-2 py-0.5 rounded-full bg-zinc-900 border border-zinc-800 text-zinc-400">v2.4.0</span>
+                    </div>
+                </a>
+
+                <div class="hidden md:flex items-center space-x-2 pl-4 border-l border-geist-border text-xs text-geist-muted font-mono">
+                    <span class="w-2 h-2 rounded-full bg-emerald-500 inline-block"></span>
+                    <span>Edge CDN : Opérationnel (cdg1)</span>
+                </div>
+            </div>
+
+            <!-- Right Nav Actions -->
+            <div class="flex items-center space-x-3">
+                <button onclick="switchView('public')" id="nav-btn-public" class="px-3.5 py-1.5 rounded-md text-sm font-medium transition-colors bg-zinc-900 text-white border border-zinc-700">
+                    Répertoire Public
+                </button>
+                
+                <button onclick="handleAdminNavClick()" id="nav-btn-admin" class="px-3.5 py-1.5 rounded-md text-sm font-medium transition-colors text-zinc-400 hover:text-white hover:bg-zinc-900/60 border border-transparent flex items-center space-x-1.5">
+                    <i data-lucide="shield" class="w-3.5 h-3.5"></i>
+                    <span id="nav-admin-label">Panel Admin</span>
+                </button>
+
+                <button id="logout-btn" onclick="logoutAdmin()" class="hidden px-2.5 py-1.5 rounded-md text-xs font-mono text-red-400 hover:text-red-300 hover:bg-red-950/30 border border-red-900/40 transition-colors" title="Se déconnecter">
+                    <i data-lucide="log-out" class="w-3.5 h-3.5"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content Container -->
+    <main class="flex-grow relative z-10 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
+
+        <!-- ========================================== -->
+        <!-- VIEW 1: PUBLIC REPOSITORY                  -->
+        <!-- ========================================== -->
+        <section id="view-public" class="space-y-8">
+            
+            <!-- Hero Header & Quick Metrics -->
+            <div class="flex flex-col lg:flex-row lg:items-end justify-between gap-6 pb-6 border-b border-geist-border">
+                <div class="space-y-3 max-w-2xl">
+                    <div class="inline-flex items-center space-x-2 px-2.5 py-1 rounded-full bg-zinc-900/90 border border-zinc-800 text-xs font-mono text-zinc-400">
+                        <i data-lucide="terminal" class="w-3.5 h-3.5 text-white"></i>
+                        <span>DISTRIBUTION DE BINAIRE & RESSOURCES</span>
+                    </div>
+                    <h1 class="text-3xl sm:text-4xl font-bold tracking-tight text-white">
+                        Artéfacts & Fichiers Vériﬁés
+                    </h1>
+                    <p class="text-geist-muted text-sm sm:text-base leading-relaxed">
+                        Téléchargez nos dernières releases, packages, documentations techniques et utilitaires. Toutes les archives sont signées avec empreinte cryptographique <span class="text-zinc-300 font-mono text-xs bg-zinc-900 px-1.5 py-0.5 rounded border border-zinc-800">SHA-256</span>.
+                    </p>
+                </div>
+
+                <!-- Mini Live Stats Pill -->
+                <div class="grid grid-cols-3 gap-3 sm:gap-4 bg-geist-surface p-3.5 rounded-xl border border-geist-border self-start lg:self-auto w-full lg:w-auto">
+                    <div class="px-2">
+                        <div class="text-[11px] font-mono uppercase text-geist-muted">Fichiers</div>
+                        <div class="text-lg sm:text-xl font-semibold text-white font-mono mt-0.5" id="public-stat-files">0</div>
+                    </div>
+                    <div class="px-2 border-l border-geist-border">
+                        <div class="text-[11px] font-mono uppercase text-geist-muted">Téléchargements</div>
+                        <div class="text-lg sm:text-xl font-semibold text-white font-mono mt-0.5" id="public-stat-downloads">0</div>
+                    </div>
+                    <div class="px-2 border-l border-geist-border">
+                        <div class="text-[11px] font-mono uppercase text-geist-muted">Intégrité</div>
+                        <div class="text-lg sm:text-xl font-semibold text-emerald-400 font-mono mt-0.5 flex items-center space-x-1">
+                            <span>100%</span>
+                            <i data-lucide="check-circle-2" class="w-4 h-4"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Controls Bar: Search, Category Filters & Sort -->
+            <div class="flex flex-col md:flex-row gap-4 items-stretch md:items-center justify-between">
+                <!-- Search Input -->
+                <div class="relative flex-grow max-w-md">
+                    <i data-lucide="search" class="w-4 h-4 text-zinc-500 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none"></i>
+                    <input 
+                        type="text" 
+                        id="search-input" 
+                        oninput="renderPublicFiles()"
+                        placeholder="Rechercher un fichier, une version, une extension (.zip, .dmg)..." 
+                        class="w-full pl-10 pr-16 py-2.5 bg-geist-surface border border-geist-border rounded-lg text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-white transition-colors"
+                    >
+                    <kbd class="hidden sm:inline-block absolute right-3 top-1/2 -translate-y-1/2 px-1.5 py-0.5 text-[10px] font-mono text-zinc-400 bg-zinc-900 border border-zinc-800 rounded">⌘K</kbd>
+                </div>
+
+                <!-- Category Filter Pills -->
+                <div class="flex items-center gap-1.5 overflow-x-auto pb-1 md:pb-0 no-scrollbar" id="category-filters">
+                    <button onclick="setCategory('Tous')" data-cat="Tous" class="cat-btn px-3 py-1.5 rounded-lg text-xs font-medium transition-all whitespace-nowrap bg-white text-black">
+                        Tous
+                    </button>
+                    <button onclick="setCategory('Releases')" data-cat="Releases" class="cat-btn px-3 py-1.5 rounded-lg text-xs font-medium transition-all whitespace-nowrap bg-geist-surface text-zinc-400 hover:text-white border border-geist-border">
+                        Releases
+                    </button>
+                    <button onclick="setCategory('Code')" data-cat="Code" class="cat-btn px-3 py-1.5 rounded-lg text-xs font-medium transition-all whitespace-nowrap bg-geist-surface text-zinc-400 hover:text-white border border-geist-border">
+                        Code
+                    </button>
+                    <button onclick="setCategory('Outillage')" data-cat="Outillage" class="cat-btn px-3 py-1.5 rounded-lg text-xs font-medium transition-all whitespace-nowrap bg-geist-surface text-zinc-400 hover:text-white border border-geist-border">
+                        Outillage
+                    </button>
+                    <button onclick="setCategory('Docs')" data-cat="Docs" class="cat-btn px-3 py-1.5 rounded-lg text-xs font-medium transition-all whitespace-nowrap bg-geist-surface text-zinc-400 hover:text-white border border-geist-border">
+                        Docs
+                    </button>
+                    <button onclick="setCategory('Media')" data-cat="Media" class="cat-btn px-3 py-1.5 rounded-lg text-xs font-medium transition-all whitespace-nowrap bg-geist-surface text-zinc-400 hover:text-white border border-geist-border">
+                        Media
+                    </button>
+                </div>
+
+                <!-- Sort Selector -->
+                <div class="flex items-center space-x-2">
+                    <label for="sort-select" class="text-xs font-mono text-geist-muted whitespace-nowrap">Trier :</label>
+                    <select id="sort-select" onchange="renderPublicFiles()" class="bg-geist-surface border border-geist-border rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-white cursor-pointer">
+                        <option value="recent">Plus récents</option>
+                        <option value="popular">Plus téléchargés</option>
+                        <option value="name">Nom (A-Z)</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Files Grid Container -->
+            <div id="files-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                <!-- Populated dynamically via JS -->
+            </div>
+
+            <!-- Empty Search State -->
+            <div id="empty-state" class="hidden py-16 text-center bg-geist-surface/60 border border-dashed border-geist-border rounded-xl">
+                <div class="w-12 h-12 rounded-full bg-zinc-900 border border-zinc-800 flex items-center justify-center mx-auto mb-3 text-zinc-400">
+                    <i data-lucide="folder-search" class="w-6 h-6"></i>
+                </div>
+                <h3 class="text-base font-semibold text-white">Aucun fichier correspondant</h3>
+                <p class="text-xs text-geist-muted mt-1 max-w-sm mx-auto">Essayez de modifier vos termes de recherche ou de réinitialiser le filtre de catégorie.</p>
+                <button onclick="resetFilters()" class="mt-4 px-4 py-2 bg-white text-black text-xs font-medium rounded-lg hover:bg-zinc-200 transition-colors">
+                    Réinitialiser les filtres
+                </button>
+            </div>
+
+        </section>
+
+        <!-- ========================================== -->
+        <!-- VIEW 2: ADMIN PANEL                        -->
+        <!-- ========================================== -->
+        <section id="view-admin" class="hidden space-y-8">
+            
+            <!-- Admin Header -->
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-geist-border">
+                <div>
+                    <div class="flex items-center space-x-2">
+                        <span class="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></span>
+                        <span class="text-xs font-mono uppercase tracking-wider text-blue-400">Session Administrateur Active</span>
+                    </div>
+                    <h1 class="text-2xl sm:text-3xl font-bold text-white mt-1">Console d'Administration NexDrop</h1>
+                    <p class="text-xs sm:text-sm text-geist-muted mt-0.5">Gérez vos fichiers publiés, suivez les téléchargements et préparez votre déploiement Vercel.</p>
+                </div>
+
+                <div class="flex flex-wrap items-center gap-2.5">
+                    <button onclick="openVercelModal()" class="px-3.5 py-2 rounded-lg text-xs font-medium bg-zinc-900 hover:bg-zinc-800 text-white border border-zinc-700 flex items-center space-x-2 transition-colors">
+                        <svg class="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24"><path d="M12 2L2 19.7778H22L12 2Z"/></svg>
+                        <span>Export / Déploiement Vercel</span>
+                    </button>
+
+                    <button onclick="resetToDefaultData()" class="px-3 py-2 rounded-lg text-xs font-medium bg-zinc-950 hover:bg-zinc-900 text-zinc-400 hover:text-white border border-geist-border flex items-center space-x-1.5 transition-colors" title="Restaurer les fichiers de démo par défaut">
+                        <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i>
+                        <span class="hidden sm:inline">Réinitialiser démo</span>
+                    </button>
+
+                    <button onclick="openFileModal()" class="px-4 py-2 rounded-lg text-xs font-semibold bg-white hover:bg-zinc-200 text-black flex items-center space-x-1.5 transition-colors shadow-sm">
+                        <i data-lucide="plus" class="w-4 h-4"></i>
+                        <span>Ajouter un fichier</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Admin Analytics Cards -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div class="bg-geist-surface border border-geist-border rounded-xl p-5">
+                    <div class="flex items-center justify-between text-geist-muted text-xs font-mono">
+                        <span>TOTAL FICHIERS ACTIFS</span>
+                        <i data-lucide="hard-drive" class="w-4 h-4 text-zinc-400"></i>
+                    </div>
+                    <div class="text-2xl font-bold text-white font-mono mt-2" id="admin-stat-count">0</div>
+                    <div class="text-[11px] text-emerald-400 mt-1 font-mono">Synchronisé dans localStorage</div>
+                </div>
+
+                <div class="bg-geist-surface border border-geist-border rounded-xl p-5">
+                    <div class="flex items-center justify-between text-geist-muted text-xs font-mono">
+                        <span>TÉLÉCHARGEMENTS CUMULÉS</span>
+                        <i data-lucide="download-cloud" class="w-4 h-4 text-blue-400"></i>
+                    </div>
+                    <div class="text-2xl font-bold text-white font-mono mt-2" id="admin-stat-downloads">0</div>
+                    <div class="text-[11px] text-geist-muted mt-1 font-mono">Mis à jour en temps réel</div>
+                </div>
+
+                <div class="bg-geist-surface border border-geist-border rounded-xl p-5">
+                    <div class="flex items-center justify-between text-geist-muted text-xs font-mono">
+                        <span>FICHIER LE PLUS POPULAIRE</span>
+                        <i data-lucide="flame" class="w-4 h-4 text-amber-400"></i>
+                    </div>
+                    <div class="text-base font-semibold text-white truncate mt-2.5" id="admin-stat-top-file">-</div>
+                    <div class="text-[11px] text-geist-muted mt-1 font-mono" id="admin-stat-top-count">0 téléchargements</div>
+                </div>
+
+                <div class="bg-geist-surface border border-geist-border rounded-xl p-5">
+                    <div class="flex items-center justify-between text-geist-muted text-xs font-mono">
+                        <span>STATUT VERCEL EDGE</span>
+                        <i data-lucide="cpu" class="w-4 h-4 text-emerald-400"></i>
+                    </div>
+                    <div class="text-base font-semibold text-emerald-400 font-mono mt-2.5 flex items-center space-x-1.5">
+                        <span>Prêt au déploiement</span>
+                    </div>
+                    <div class="text-[11px] text-geist-muted mt-1 font-mono">Architecture 100% statique</div>
+                </div>
+            </div>
+
+            <!-- Category Breakdown & Management Table -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                
+                <!-- Left 2 Cols: File Management Table -->
+                <div class="lg:col-span-2 bg-geist-surface border border-geist-border rounded-xl overflow-hidden flex flex-col">
+                    <div class="p-4 sm:px-6 border-b border-geist-border flex items-center justify-between">
+                        <div>
+                            <h2 class="text-sm font-semibold text-white">Catalogue des Fichiers</h2>
+                            <p class="text-xs text-geist-muted">Modifiez les métadonnées, versions ou supprimez des entrées.</p>
+                        </div>
+                        <span class="text-xs font-mono text-zinc-400 bg-zinc-900 px-2.5 py-1 rounded border border-zinc-800" id="admin-table-badge">0 entrées</span>
+                    </div>
+
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr class="border-b border-geist-border text-[11px] font-mono uppercase text-geist-muted bg-black/40">
+                                    <th class="py-3 px-4">Fichier & Version</th>
+                                    <th class="py-3 px-4">Catégorie</th>
+                                    <th class="py-3 px-4">Taille</th>
+                                    <th class="py-3 px-4">Téléch.</th>
+                                    <th class="py-3 px-4 text-right">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="admin-files-tbody" class="divide-y divide-geist-border text-sm">
+                                <!-- Populated via JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Right Col: Download Distribution by File -->
+                <div class="bg-geist-surface border border-geist-border rounded-xl p-5 flex flex-col justify-between space-y-6">
+                    <div class="space-y-4">
+                        <div class="flex items-center justify-between border-b border-geist-border pb-3">
+                            <div>
+                                <h2 class="text-sm font-semibold text-white">Statistiques de Téléchargement</h2>
+                                <p class="text-xs text-geist-muted">Répartition du trafic par fichier</p>
+                            </div>
+                            <i data-lucide="bar-chart-3" class="w-4 h-4 text-zinc-400"></i>
+                        </div>
+
+                        <!-- Dynamic Bars -->
+                        <div id="admin-stats-bars" class="space-y-3.5 pt-1">
+                            <!-- Populated via JS -->
+                        </div>
+                    </div>
+
+                    <!-- Vercel Info Box inside Admin -->
+                    <div class="p-3.5 rounded-lg bg-zinc-950 border border-zinc-800/80 space-y-2">
+                        <div class="flex items-center space-x-2 text-xs font-medium text-white">
+                            <i data-lucide="info" class="w-4 h-4 text-blue-400 shrink-0"></i>
+                            <span>Persistance & Production Vercel</span>
+                        </div>
+                        <p class="text-[11px] text-geist-muted leading-relaxed">
+                            Les ajouts sont sauvegardés dans votre navigateur (<code class="text-zinc-300 font-mono">localStorage</code>). Pour les rendre permanents pour tous vos visiteurs sur Vercel, cliquez sur <strong>Export / Déploiement Vercel</strong>.
+                        </p>
+                    </div>
+                </div>
+
+            </div>
+
+        </section>
+
+    </main>
+
+    <!-- ========================================== -->
+    <!-- MODAL 1: ADMIN LOGIN                       -->
+    <!-- ========================================== -->
+    <div id="modal-login" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+        <div class="bg-geist-card border border-geist-border rounded-xl max-w-md w-full p-6 shadow-2xl relative animate-fadeIn">
+            <button onclick="closeLoginModal()" class="absolute top-4 right-4 text-zinc-500 hover:text-white p-1 rounded-lg transition-colors">
+                <i data-lucide="x" class="w-4 h-4"></i>
+            </button>
+
+            <div class="flex items-center space-x-3 mb-5">
+                <div class="w-10 h-10 rounded-lg bg-zinc-900 border border-zinc-800 flex items-center justify-center text-white">
+                    <i data-lucide="lock" class="w-5 h-5"></i>
+                </div>
+                <div>
+                    <h3 class="text-lg font-semibold text-white">Authentification Admin</h3>
+                    <p class="text-xs text-geist-muted">Accès restreint au gestionnaire de dépôt NexDrop</p>
+                </div>
+            </div>
+
+            <!-- Clear Demo Credentials Banner as requested -->
+            <div class="mb-5 p-3.5 rounded-lg bg-blue-950/25 border border-blue-800/50 text-xs space-y-2">
+                <div class="flex items-center justify-between">
+                    <span class="font-mono uppercase text-[10px] tracking-wider text-blue-400 font-semibold flex items-center gap-1.5">
+                        <i data-lucide="key-round" class="w-3.5 h-3.5"></i>
+                        Identifiants de démonstration
+                    </span>
+                    <button type="button" onclick="fillDemoCredentials()" class="text-[11px] font-mono underline text-blue-300 hover:text-white transition-colors">
+                        Remplir auto.
+                    </button>
+                </div>
+                <div class="grid grid-cols-2 gap-2 pt-1 font-mono text-zinc-300 bg-black/50 p-2 rounded border border-blue-900/30">
+                    <div>Identifiant : <strong class="text-white select-all">admin</strong></div>
+                    <div>Mot de passe : <strong class="text-white select-all">tech2026</strong></div>
+                </div>
+            </div>
+
+            <form onsubmit="submitLogin(event)" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-mono uppercase text-zinc-400 mb-1.5">Identifiant</label>
+                    <input type="text" id="login-username" required placeholder="admin" class="w-full px-3.5 py-2 bg-black border border-geist-border rounded-lg text-sm text-white focus:outline-none focus:border-white transition-colors font-mono">
+                </div>
+                <div>
+                    <label class="block text-xs font-mono uppercase text-zinc-400 mb-1.5">Mot de passe</label>
+                    <input type="password" id="login-password" required placeholder="••••••••" class="w-full px-3.5 py-2 bg-black border border-geist-border rounded-lg text-sm text-white focus:outline-none focus:border-white transition-colors font-mono">
+                </div>
+
+                <div id="login-error" class="hidden text-xs text-red-400 bg-red-950/30 border border-red-900/50 rounded-lg p-2.5 flex items-center space-x-2">
+                    <i data-lucide="alert-triangle" class="w-4 h-4 shrink-0"></i>
+                    <span>Identifiant ou mot de passe incorrect.</span>
+                </div>
+
+                <div class="pt-2 flex items-center justify-end space-x-2">
+                    <button type="button" onclick="closeLoginModal()" class="px-4 py-2 rounded-lg text-xs font-medium text-zinc-400 hover:text-white transition-colors">
+                        Annuler
+                    </button>
+                    <button type="submit" class="px-5 py-2 rounded-lg text-xs font-semibold bg-white text-black hover:bg-zinc-200 transition-colors">
+                        Se connecter
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ========================================== -->
+    <!-- MODAL 2: ADD / EDIT FILE                   -->
+    <!-- ========================================== -->
+    <div id="modal-file" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-black/80 backdrop-blur-sm overflow-y-auto">
+        <div class="bg-geist-card border border-geist-border rounded-xl max-w-xl w-full p-6 shadow-2xl relative my-8">
+            <button onclick="closeFileModal()" class="absolute top-4 right-4 text-zinc-500 hover:text-white p-1 rounded-lg transition-colors">
+                <i data-lucide="x" class="w-4 h-4"></i>
+            </button>
+
+            <h3 id="modal-file-title" class="text-lg font-semibold text-white mb-1">Ajouter un nouveau fichier</h3>
+            <p class="text-xs text-geist-muted mb-5">Renseignez les détails du package ou glissez un fichier local pour auto-remplir les métadonnées.</p>
+
+            <form id="form-file" onsubmit="saveFile(event)" class="space-y-4">
+                <input type="hidden" id="file-id">
+
+                <!-- Simulated Drag & Drop File Zone -->
+                <div 
+                    id="dropzone"
+                    onclick="document.getElementById('real-file-input').click()"
+                    ondragover="handleDragOver(event)"
+                    ondragleave="handleDragLeave(event)"
+                    ondrop="handleDrop(event)"
+                    class="border border-dashed border-zinc-700 hover:border-white bg-black/50 rounded-xl p-4 text-center cursor-pointer transition-colors"
+                >
+                    <input type="file" id="real-file-input" class="hidden" onchange="handleFileSelect(event)">
+                    <div class="flex flex-col items-center justify-center space-y-1.5">
+                        <div class="w-8 h-8 rounded-full bg-zinc-900 border border-zinc-800 flex items-center justify-center text-zinc-300">
+                            <i data-lucide="upload-cloud" class="w-4 h-4"></i>
+                        </div>
+                        <div class="text-xs text-zinc-300 font-medium" id="dropzone-label">
+                            Cliquez ou glissez un fichier ici pour extraire ses métadonnées
+                        </div>
+                        <span class="text-[11px] text-geist-muted font-mono">Calcul automatique du nom, de la taille et du hash SHA-256</span>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div class="sm:col-span-2">
+                        <label class="block text-[11px] font-mono uppercase text-zinc-400 mb-1">Nom du fichier *</label>
+                        <input type="text" id="file-name" required placeholder="ex: nexdrop-cli-macos-arm64.tar.gz" class="w-full px-3 py-2 bg-black border border-geist-border rounded-lg text-xs text-white focus:outline-none focus:border-white font-mono">
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-mono uppercase text-zinc-400 mb-1">Version *</label>
+                        <input type="text" id="file-version" required placeholder="v2.4.0" class="w-full px-3 py-2 bg-black border border-geist-border rounded-lg text-xs text-white focus:outline-none focus:border-white font-mono">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div>
+                        <label class="block text-[11px] font-mono uppercase text-zinc-400 mb-1">Catégorie *</label>
+                        <select id="file-category" class="w-full px-3 py-2 bg-black border border-geist-border rounded-lg text-xs text-white focus:outline-none focus:border-white">
+                            <option value="Releases">Releases</option>
+                            <option value="Code">Code</option>
+                            <option value="Outillage">Outillage</option>
+                            <option value="Docs">Docs</option>
+                            <option value="Media">Media</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-mono uppercase text-zinc-400 mb-1">Taille *</label>
+                        <input type="text" id="file-size" required placeholder="ex: 18.4 MB" class="w-full px-3 py-2 bg-black border border-geist-border rounded-lg text-xs text-white focus:outline-none focus:border-white font-mono">
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-mono uppercase text-zinc-400 mb-1">Extension / Type</label>
+                        <input type="text" id="file-ext" placeholder="ex: .tar.gz, .dmg" class="w-full px-3 py-2 bg-black border border-geist-border rounded-lg text-xs text-white focus:outline-none focus:border-white font-mono">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-[11px] font-mono uppercase text-zinc-400 mb-1">Description *</label>
+                    <textarea id="file-desc" rows="2" required placeholder="Brève description technique du contenu ou des notes de version..." class="w-full px-3 py-2 bg-black border border-geist-border rounded-lg text-xs text-white focus:outline-none focus:border-white"></textarea>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-[11px] font-mono uppercase text-zinc-400 mb-1">URL directe (Optionnel)</label>
+                        <input type="text" id="file-url" placeholder="https://cdn.exemple.com/file.zip ou #simulation" class="w-full px-3 py-2 bg-black border border-geist-border rounded-lg text-xs text-white focus:outline-none focus:border-white font-mono">
+                    </div>
+                    <div>
+                        <div class="flex items-center justify-between mb-1">
+                            <label class="block text-[11px] font-mono uppercase text-zinc-400">Checksum SHA-256</label>
+                            <button type="button" onclick="regenerateFormSha()" class="text-[10px] font-mono text-blue-400 hover:underline">Générer</button>
+                        </div>
+                        <input type="text" id="file-sha" required class="w-full px-3 py-2 bg-black border border-geist-border rounded-lg text-xs text-zinc-300 focus:outline-none focus:border-white font-mono">
+                    </div>
+                </div>
+
+                <div class="pt-3 border-t border-geist-border flex items-center justify-end space-x-2">
+                    <button type="button" onclick="closeFileModal()" class="px-4 py-2 rounded-lg text-xs font-medium text-zinc-400 hover:text-white transition-colors">
+                        Annuler
+                    </button>
+                    <button type="submit" class="px-5 py-2 rounded-lg text-xs font-semibold bg-white text-black hover:bg-zinc-200 transition-colors">
+                        Enregistrer le fichier
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ========================================== -->
+    <!-- MODAL 3: VERCEL EXPORT & DEPLOY HELPER     -->
+    <!-- ========================================== -->
+    <div id="modal-vercel" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-black/80 backdrop-blur-sm overflow-y-auto">
+        <div class="bg-geist-card border border-geist-border rounded-xl max-w-2xl w-full p-6 shadow-2xl relative my-8">
+            <button onclick="closeVercelModal()" class="absolute top-4 right-4 text-zinc-500 hover:text-white p-1 rounded-lg transition-colors">
+                <i data-lucide="x" class="w-4 h-4"></i>
+            </button>
+
+            <div class="flex items-center space-x-3 mb-4">
+                <div class="w-9 h-9 rounded-lg bg-white text-black flex items-center justify-center font-bold">
+                    <svg class="w-4 h-4 fill-current" viewBox="0 0 24 24"><path d="M12 2L2 19.7778H22L12 2Z"/></svg>
+                </div>
+                <div>
+                    <h3 class="text-lg font-semibold text-white">Assistant d'Export & Déploiement Vercel</h3>
+                    <p class="text-xs text-geist-muted">Déployez votre hub NexDrop en production en moins de 60 secondes</p>
+                </div>
+            </div>
+
+            <div class="space-y-5 text-xs">
+                <!-- Step by step guide -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <div class="p-3.5 rounded-lg bg-black border border-geist-border space-y-1.5">
+                        <div class="font-mono text-[11px] text-blue-400 font-semibold">01. STRUCTURE</div>
+                        <p class="text-zinc-300 leading-relaxed">Placez ce fichier <code class="font-mono text-white">index.html</code> à la racine de votre projet et vos vrais fichiers dans un dossier <code class="font-mono text-white">/public/files/</code>.</p>
+                    </div>
+                    <div class="p-3.5 rounded-lg bg-black border border-geist-border space-y-1.5">
+                        <div class="font-mono text-[11px] text-blue-400 font-semibold">02. PERSISTANCE JSON</div>
+                        <p class="text-zinc-300 leading-relaxed">Copiez le JSON généré ci-dessous pour remplacer la constante <code class="font-mono text-white">DEFAULT_FILES</code> dans le code source si vous souhaitez figer vos ajouts.</p>
+                    </div>
+                    <div class="p-3.5 rounded-lg bg-black border border-geist-border space-y-1.5">
+                        <div class="font-mono text-[11px] text-blue-400 font-semibold">03. VERCEL CLI / GIT</div>
+                        <p class="text-zinc-300 leading-relaxed">Poussez sur GitHub et importez sur Vercel, ou exécutez <code class="font-mono text-emerald-400">npx vercel --prod</code> dans le dossier.</p>
+                    </div>
+                </div>
+
+                <!-- Exported JSON Code Area -->
+                <div>
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="font-mono uppercase text-[11px] text-zinc-400">Configuration JSON actuelle des fichiers (<span id="export-count">0</span> fichiers)</span>
+                        <div class="flex items-center space-x-2">
+                            <button onclick="copyExportJson()" class="px-2.5 py-1 rounded bg-zinc-900 hover:bg-zinc-800 text-white border border-zinc-700 font-mono text-[11px] flex items-center space-x-1.5 transition-colors">
+                                <i data-lucide="copy" class="w-3 h-3"></i>
+                                <span>Copier le JSON</span>
+                            </button>
+                            <button onclick="downloadJsonFile()" class="px-2.5 py-1 rounded bg-white hover:bg-zinc-200 text-black font-mono text-[11px] font-medium flex items-center space-x-1.5 transition-colors">
+                                <i data-lucide="download" class="w-3 h-3"></i>
+                                <span>Télécharger files.json</span>
+                            </button>
+                        </div>
+                    </div>
+                    <pre id="vercel-json-output" class="w-full h-56 p-3.5 bg-black border border-geist-border rounded-lg font-mono text-[11px] text-emerald-400 overflow-auto select-all"></pre>
+                </div>
+            </div>
+
+            <div class="mt-5 pt-4 border-t border-geist-border flex justify-end">
+                <button onclick="closeVercelModal()" class="px-4 py-2 rounded-lg text-xs font-medium bg-zinc-900 text-white hover:bg-zinc-800 border border-zinc-700 transition-colors">
+                    Fermer
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========================================== -->
+    <!-- TOAST NOTIFICATION CONTAINER               -->
+    <!-- ========================================== -->
+    <div id="toast-container" class="fixed bottom-5 right-5 z-50 flex flex-col gap-2 max-w-sm w-full pointer-events-none"></div>
+
+    <!-- Footer -->
+    <footer class="border-t border-geist-border bg-black/90 py-6 mt-16 relative z-10">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-geist-muted">
+            <div class="flex items-center space-x-2">
+                <span class="font-semibold text-white">NexDrop</span>
+                <span>—</span>
+                <span>Propulsé pour Vercel Edge Network</span>
+            </div>
+            <div class="flex items-center space-x-4 font-mono text-[11px]">
+                <span>SHA-256 Verified</span>
+                <span>•</span>
+                <button onclick="handleAdminNavClick()" class="hover:text-white transition-colors">Accès Admin (admin / tech2026)</button>
+            </div>
+        </div>
+    </footer>
+
+    <!-- ========================================== -->
+    <!-- APPLICATION LOGIC                          -->
+    <!-- ========================================== -->
+    <script>
+        // --- 1. DEFAULT DATASET ---
+        const DEFAULT_FILES = [
+            {
+                id: "nex-core-240",
+                name: "nexdrop-engine-v2.4.0-darwin-arm64.tar.gz",
+                version: "v2.4.0",
+                category: "Releases",
+                size: "24.8 MB",
+                ext: ".tar.gz",
+                description: "Binaire officiel macOS Apple Silicon (M1/M2/M3). Inclut le démon de synchronisation rapide et l'interface CLI.",
+                sha256: "8f4b2e91c7d34a10b6e8f2a9c4d1e5b7a0f3c8d2e6b4a1f9c5d7e3b2a8f4c1d9",
+                downloads: 1420,
+                date: "2026-10-18",
+                url: "#simulation"
+            },
+            {
+                id: "nex-sdk-ts",
+                name: "nexdrop-typescript-sdk-1.9.2.zip",
+                version: "v1.9.2",
+                category: "Code",
+                size: "4.2 MB",
+                ext: ".zip",
+                description: "SDK TypeScript/Node.js complet avec définitions de types strictes, exemples Next.js App Router et hooks React.",
+                sha256: "3a7c9e12b4f80d65e2a1c9f4b7d3e8a0c5f2b6d9e1a4c7f0b3d8e5a2c6f9b1d4",
+                downloads: 895,
+                date: "2026-10-14",
+                url: "#simulation"
+            },
+            {
+                id: "nex-cli-win",
+                name: "VaultTech-CLI-Setup-x64.exe",
+                version: "v2.3.8",
+                category: "Outillage",
+                size: "16.1 MB",
+                ext: ".exe",
+                description: "Installateur Windows 64-bits signé numériquement avec intégration automatique au PATH et PowerShell autocompletion.",
+                sha256: "c1d9e4f7a2b58c30e6f1a9d4b7c2e8f5a0d3b6c9e2f7a4d1b8c5e0f3a6d9b2c7",
+                downloads: 642,
+                date: "2026-10-08",
+                url: "#simulation"
+            },
+            {
+                id: "nex-whitepaper",
+                name: "Architecture-Zero-Trust-Spec-FR.pdf",
+                version: "v1.2",
+                category: "Docs",
+                size: "3.7 MB",
+                ext: ".pdf",
+                description: "Documentation d'architecture complète : chiffrement de bout en bout, distribution Edge et protocole de vérification SHA.",
+                sha256: "5e8a1d4c7f0b3e6a9d2c5f8b1e4a7d0c3f6b9e2a5d8c1f4b7e0a3d6c9f2b5e8a",
+                downloads: 518,
+                date: "2026-09-29",
+                url: "#simulation"
+            },
+            {
+                id: "nex-uikit-media",
+                name: "Geist-Dark-Brand-Assets-Pack.zip",
+                version: "v3.0.0",
+                category: "Media",
+                size: "48.5 MB",
+                ext: ".zip",
+                description: "Kit média officiel haute résolution : composants Figma, icônes SVG vectorielles, fonds d'écran 4K et typographies.",
+                sha256: "9b2e5a8d1c4f7b0e3a6d9c2f5b8e1a4d7c0f3b6e9a2d5c8f1b4e7a0d3c6f9b2e",
+                downloads: 1130,
+                date: "2026-10-20",
+                url: "#simulation"
+            },
+            {
+                id: "nex-docker-img",
+                name: "nexdrop-selfhosted-compose.yml",
+                version: "v2.4.0",
+                category: "Outillage",
+                size: "128 KB",
+                ext: ".yml",
+                description: "Stack Docker Compose prête pour la production avec reverse-proxy Traefik, Redis cache et génération SSL Let's Encrypt.",
+                sha256: "7d0c3f6b9e2a5d8c1f4b7e0a3d6c9f2b5e8a1d4c7f0b3e6a9d2c5f8b1e4a7d0c",
+                downloads: 764,
+                date: "2026-10-21",
+                url: "#simulation"
+            }
+        ];
+
+        // --- 2. APPLICATION STATE ---
+        const STORAGE_KEY = "nexdrop_files_v1";
+        let filesData = [];
+        let currentCategory = "Tous";
+        let isAdminAuthenticated = false;
+        let activeDownloads = {}; // tracks progress per file id
+
+        // --- 3. INITIALIZATION ---
+        window.addEventListener('DOMContentLoaded', () => {
+            loadFilesFromStorage();
+            renderPublicFiles();
+            updateGlobalMetrics();
+            lucide.createIcons();
+
+            // Keyboard shortcut Cmd+K / Ctrl+K for search
+            window.addEventListener('keydown', (e) => {
+                if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+                    e.preventDefault();
+                    const searchInput = document.getElementById('search-input');
+                    if (searchInput) searchInput.focus();
+                }
+            });
+        });
+
+        function loadFilesFromStorage() {
+            try {
+                const raw = localStorage.getItem(STORAGE_KEY);
+                if (raw) {
+                    filesData = JSON.parse(raw);
+                } else {
+                    filesData = JSON.parse(JSON.stringify(DEFAULT_FILES));
+                    saveFilesToStorage();
+                }
+            } catch (err) {
+                filesData = JSON.parse(JSON.stringify(DEFAULT_FILES));
+            }
+        }
+
+        function saveFilesToStorage() {
+            try {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(filesData));
+            } catch (err) {
+                console.error("Erreur de sauvegarde localStorage:", err);
+            }
+            updateGlobalMetrics();
+        }
+
+        // --- 4. CATEGORY & ICON HELPERS ---
+        function getCategoryBadgeStyle(category) {
+            const styles = {
+                'Releases': 'bg-blue-950/50 text-blue-400 border-blue-800/60',
+                'Code': 'bg-emerald-950/50 text-emerald-400 border-emerald-800/60',
+                'Outillage': 'bg-amber-950/50 text-amber-400 border-amber-800/60',
+                'Docs': 'bg-purple-950/50 text-purple-400 border-purple-800/60',
+                'Media': 'bg-pink-950/50 text-pink-400 border-pink-800/60'
+            };
+            return styles[category] || 'bg-zinc-900 text-zinc-300 border-zinc-700';
+        }
+
+        function getCategoryIcon(category) {
+            const icons = {
+                'Releases': 'package',
+                'Code': 'file-code-2',
+                'Outillage': 'terminal-square',
+                'Docs': 'book-open',
+                'Media': 'layers'
+            };
+            return icons[category] || 'file';
+        }
+
+        // --- 5. PUBLIC VIEW RENDERING ---
+        function setCategory(cat) {
+            currentCategory = cat;
+            document.querySelectorAll('.cat-btn').forEach(btn => {
+                if (btn.getAttribute('data-cat') === cat) {
+                    btn.className = "cat-btn px-3 py-1.5 rounded-lg text-xs font-medium transition-all whitespace-nowrap bg-white text-black";
+                } else {
+                    btn.className = "cat-btn px-3 py-1.5 rounded-lg text-xs font-medium transition-all whitespace-nowrap bg-geist-surface text-zinc-400 hover:text-white border border-geist-border";
+                }
+            });
+            renderPublicFiles();
+        }
+
+        function resetFilters() {
+            document.getElementById('search-input').value = '';
+            setCategory('Tous');
+        }
+
+        function renderPublicFiles() {
+            const query = (document.getElementById('search-input')?.value || '').toLowerCase().trim();
+            const sortBy = document.getElementById('sort-select')?.value || 'recent';
+            const grid = document.getElementById('files-grid');
+            const emptyState = document.getElementById('empty-state');
+
+            let filtered = filesData.filter(f => {
+                const matchesCat = currentCategory === 'Tous' || f.category === currentCategory;
+                const matchesQuery = !query || 
+                    f.name.toLowerCase().includes(query) ||
+                    f.description.toLowerCase().includes(query) ||
+                    f.version.toLowerCase().includes(query) ||
+                    (f.ext && f.ext.toLowerCase().includes(query));
+                return matchesCat && matchesQuery;
+            });
+
+            // Sort
+            filtered.sort((a, b) => {
+                if (sortBy === 'popular') return b.downloads - a.downloads;
+                if (sortBy === 'name') return a.name.localeCompare(b.name);
+                return new Date(b.date) - new Date(a.date);
+            });
+
+            if (filtered.length === 0) {
+                grid.innerHTML = '';
+                emptyState.classList.remove('hidden');
+                return;
+            }
+
+            emptyState.classList.add('hidden');
+            grid.innerHTML = filtered.map(file => {
+                const badgeClass = getCategoryBadgeStyle(file.category);
+                const iconName = getCategoryIcon(file.category);
+                const shortSha = file.sha256 ? `${file.sha256.substring(0, 10)}...${file.sha256.substring(file.sha256.length - 6)}` : 'N/A';
+
+                return `
+                <article class="bg-geist-card border border-geist-border rounded-xl p-5 flex flex-col justify-between card-transition relative overflow-hidden group">
+                    <div>
+                        <!-- Top Row: Icon, Category Badge & Version -->
+                        <div class="flex items-center justify-between gap-2 mb-3.5">
+                            <div class="flex items-center space-x-2.5">
+                                <div class="w-9 h-9 rounded-lg bg-zinc-900 border border-zinc-800 flex items-center justify-center text-white group-hover:border-zinc-600 transition-colors">
+                                    <i data-lucide="${iconName}" class="w-4 h-4"></i>
+                                </div>
+                                <span class="text-[11px] font-mono px-2.5 py-0.5 rounded-full border ${badgeClass}">
+                                    ${escapeHtml(file.category)}
+                                </span>
+                            </div>
+                            <span class="text-xs font-mono text-zinc-300 bg-zinc-900 px-2 py-0.5 rounded border border-zinc-800">
+                                ${escapeHtml(file.version)}
+                            </span>
+                        </div>
+
+                        <!-- File Title & Description -->
+                        <h3 class="text-sm font-semibold text-white font-mono break-all leading-snug group-hover:text-blue-400 transition-colors">
+                            ${escapeHtml(file.name)}
+                        </h3>
+                        <p class="text-xs text-geist-muted mt-2 line-clamp-2 leading-relaxed">
+                            ${escapeHtml(file.description)}
+                        </p>
+                    </div>
+
+                    <div class="mt-5 pt-4 border-t border-geist-border/80 space-y-3.5">
+                        <!-- Technical Metadata Row -->
+                        <div class="flex items-center justify-between text-[11px] font-mono text-zinc-400">
+                            <span class="flex items-center space-x-1">
+                                <i data-lucide="hard-drive" class="w-3.5 h-3.5 text-zinc-500"></i>
+                                <span>${escapeHtml(file.size)}</span>
+                            </span>
+                            <span class="flex items-center space-x-1">
+                                <i data-lucide="download" class="w-3.5 h-3.5 text-zinc-500"></i>
+                                <span id="dl-count-${file.id}">${file.downloads.toLocaleString('fr-FR')}</span>
+                            </span>
+                            <span>${escapeHtml(file.date)}</span>
+                        </div>
+
+                        <!-- SHA-256 Checksum Bar -->
+                        <div class="flex items-center justify-between bg-black px-2.5 py-1.5 rounded-lg border border-zinc-800/80 text-[11px] font-mono">
+                            <div class="flex items-center space-x-1.5 truncate pr-2">
+                                <span class="text-zinc-500">SHA256:</span>
+                                <span class="text-zinc-300 truncate">${shortSha}</span>
+                            </div>
+                            <button 
+                                onclick="copyChecksum('${file.sha256}', this)" 
+                                class="text-zinc-400 hover:text-white flex items-center space-x-1 shrink-0 px-1.5 py-0.5 rounded hover:bg-zinc-900 transition-colors"
+                                title="Copier l'empreinte SHA-256 complète"
+                            >
+                                <i data-lucide="copy" class="w-3 h-3"></i>
+                                <span class="text-[10px]">Copier</span>
+                            </button>
+                        </div>
+
+                        <!-- Progress Bar Container (Hidden until download starts) -->
+                        <div id="progress-wrap-${file.id}" class="hidden space-y-1">
+                            <div class="flex justify-between text-[10px] font-mono">
+                                <span id="progress-status-${file.id}" class="text-blue-400 animate-pulse-fast">Vérification Edge CDN...</span>
+                                <span id="progress-pct-${file.id}" class="text-white">0%</span>
+                            </div>
+                            <div class="w-full h-1.5 bg-zinc-900 rounded-full overflow-hidden">
+                                <div id="progress-bar-${file.id}" class="h-full bg-white transition-all duration-150 rounded-full" style="width: 0%"></div>
+                            </div>
+                        </div>
+
+                        <!-- Download Action Button -->
+                        <button 
+                            id="dl-btn-${file.id}"
+                            onclick="triggerDownload('${file.id}')" 
+                            class="w-full py-2.5 px-4 rounded-lg bg-white hover:bg-zinc-200 text-black font-medium text-xs flex items-center justify-center space-x-2 transition-all shadow-sm active:scale-[0.99]"
+                        >
+                            <i data-lucide="download" class="w-3.5 h-3.5"></i>
+                            <span>Télécharger (${escapeHtml(file.ext || 'Archive')})</span>
+                        </button>
+                    </div>
+                </article>
+                `;
+            }).join('');
+
+            lucide.createIcons();
+        }
+
+        // --- 6. SIMULATED DOWNLOAD & CHECKSUM COPY ---
+        function copyChecksum(sha, btnElement) {
+            copyToClipboard(sha);
+            const originalHTML = btnElement.innerHTML;
+            btnElement.innerHTML = `<span class="text-[10px] text-emerald-400 font-semibold">Copié !</span>`;
+            showToast("Empreinte SHA-256 copiée dans le presse-papiers", "success");
+            setTimeout(() => {
+                btnElement.innerHTML = originalHTML;
+                lucide.createIcons();
+            }, 1800);
+        }
+
+        function triggerDownload(fileId) {
+            if (activeDownloads[fileId]) return; // Prevent double click while downloading
+
+            const file = filesData.find(f => f.id === fileId);
+            if (!file) return;
+
+            activeDownloads[fileId] = true;
+            const btn = document.getElementById(`dl-btn-${fileId}`);
+            const progressWrap = document.getElementById(`progress-wrap-${fileId}`);
+            const progressBar = document.getElementById(`progress-bar-${fileId}`);
+            const progressPct = document.getElementById(`progress-pct-${fileId}`);
+            const progressStatus = document.getElementById(`progress-status-${fileId}`);
+
+            if (btn) {
+                btn.disabled = true;
+                btn.classList.add('opacity-50', 'cursor-not-allowed');
+                btn.innerHTML = `<span class="font-mono text-xs">Téléchargement en cours...</span>`;
+            }
+            if (progressWrap) progressWrap.classList.remove('hidden');
+
+            let progress = 0;
+            const interval = setInterval(() => {
+                progress += Math.floor(Math.random() * 18) + 8;
+                if (progress >= 100) {
+                    progress = 100;
+                    clearInterval(interval);
+
+                    if (progressBar) progressBar.style.width = `100%`;
+                    if (progressPct) progressPct.textContent = `100%`;
+                    if (progressStatus) {
+                        progressStatus.textContent = `Intégrité SHA-256 vérifiée ✓`;
+                        progressStatus.className = "text-emerald-400";
+                    }
+
+                    // Increment download count
+                    file.downloads = (file.downloads || 0) + 1;
+                    saveFilesToStorage();
+
+                    const countEl = document.getElementById(`dl-count-${fileId}`);
+                    if (countEl) countEl.textContent = file.downloads.toLocaleString('fr-FR');
+
+                    // Generate & download a real local artifact receipt or redirect to custom URL
+                    if (file.url && file.url !== '#simulation' && file.url.startsWith('http')) {
+                        window.open(file.url, '_blank');
+                    } else {
+                        generateSimulatedFileDownload(file);
+                    }
+
+                    showToast(`Téléchargement de ${file.name} terminé`, "success");
+
+                    setTimeout(() => {
+                        if (progressWrap) progressWrap.classList.add('hidden');
+                        if (progressBar) progressBar.style.width = `0%`;
+                        if (progressStatus) {
+                            progressStatus.textContent = `Vérification Edge CDN...`;
+                            progressStatus.className = "text-blue-400 animate-pulse-fast";
+                        }
+                        if (btn) {
+                            btn.disabled = false;
+                            btn.classList.remove('opacity-50', 'cursor-not-allowed');
+                            btn.innerHTML = `<i data-lucide="check" class="w-3.5 h-3.5 text-emerald-600"></i><span>Téléchargé avec succès</span>`;
+                            lucide.createIcons();
+                        }
+                        delete activeDownloads[fileId];
+
+                        setTimeout(() => {
+                            if (btn) {
+                                btn.innerHTML = `<i data-lucide="download" class="w-3.5 h-3.5"></i><span>Télécharger (${escapeHtml(file.ext || 'Archive')})</span>`;
+                                lucide.createIcons();
+                            }
+                        }, 2200);
+                    }, 900);
+
+                } else {
+                    if (progressBar) progressBar.style.width = `${progress}%`;
+                    if (progressPct) progressPct.textContent = `${progress}%`;
+                    if (progress > 45 && progressStatus) {
+                        progressStatus.textContent = `Réception des paquets binaires...`;
+                    }
+                }
+            }, 130);
+        }
+
+        function generateSimulatedFileDownload(file) {
+            const content = [
+                `================================================================`,
+                `NEXDROP EDGE CDN — MANIFESTE D'ARTÉFACT VÉRIFIÉ`,
+                `================================================================`,
+                `Fichier      : ${file.name}`,
+                `Version      : ${file.version}`,
+                `Catégorie    : ${file.category}`,
+                `Taille       : ${file.size}`,
+                `Date Release : ${file.date}`,
+                `SHA-256      : ${file.sha256}`,
+                `----------------------------------------------------------------`,
+                `Description  :`,
+                `${file.description}`,
+                `----------------------------------------------------------------`,
+                `Note : Ce fichier est généré par le simulateur NexDrop.`,
+                `En production sur Vercel, placez votre binaire réel dans /public/files/`,
+                `et renseignez son chemin dans le Panel Admin.`
+            ].join('\n');
+
+            const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${file.name}.manifest.txt`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        // --- 7. NAVIGATION & ADMIN AUTHENTICATION ---
+        function switchView(view) {
+            const publicSection = document.getElementById('view-public');
+            const adminSection = document.getElementById('view-admin');
+            const btnPublic = document.getElementById('nav-btn-public');
+            const btnAdmin = document.getElementById('nav-btn-admin');
+
+            if (view === 'admin') {
+                if (!isAdminAuthenticated) {
+                    openLoginModal();
+                    return;
+                }
+                publicSection.classList.add('hidden');
+                adminSection.classList.remove('hidden');
+
+                btnAdmin.className = "px-3.5 py-1.5 rounded-md text-sm font-medium transition-colors bg-zinc-900 text-white border border-zinc-700 flex items-center space-x-1.5";
+                btnPublic.className = "px-3.5 py-1.5 rounded-md text-sm font-medium transition-colors text-zinc-400 hover:text-white hover:bg-zinc-900/60 border border-transparent";
+                renderAdminDashboard();
+            } else {
+                adminSection.classList.add('hidden');
+                publicSection.classList.remove('hidden');
+
+                btnPublic.className = "px-3.5 py-1.5 rounded-md text-sm font-medium transition-colors bg-zinc-900 text-white border border-zinc-700";
+                btnAdmin.className = "px-3.5 py-1.5 rounded-md text-sm font-medium transition-colors text-zinc-400 hover:text-white hover:bg-zinc-900/60 border border-transparent flex items-center space-x-1.5";
+                renderPublicFiles();
+            }
+            lucide.createIcons();
+        }
+
+        function handleAdminNavClick() {
+            if (isAdminAuthenticated) {
+                switchView('admin');
+            } else {
+                openLoginModal();
+            }
+        }
+
+        function openLoginModal() {
+            const modal = document.getElementById('modal-login');
+            document.getElementById('login-error').classList.add('hidden');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            document.getElementById('login-username').focus();
+        }
+
+        function closeLoginModal() {
+            const modal = document.getElementById('modal-login');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+
+        function fillDemoCredentials() {
+            document.getElementById('login-username').value = 'admin';
+            document.getElementById('login-password').value = 'tech2026';
+            document.getElementById('login-error').classList.add('hidden');
+        }
+
+        function submitLogin(e) {
+            e.preventDefault();
+            const user = document.getElementById('login-username').value.trim();
+            const pass = document.getElementById('login-password').value;
+
+            if (user === 'admin' && pass === 'tech2026') {
+                isAdminAuthenticated = true;
+                closeLoginModal();
+                document.getElementById('logout-btn').classList.remove('hidden');
+                document.getElementById('nav-admin-label').textContent = 'Console Admin';
+                switchView('admin');
+                showToast("Connecté au Panel Administrateur", "success");
+            } else {
+                document.getElementById('login-error').classList.remove('hidden');
+            }
+        }
+
+        function logoutAdmin() {
+            isAdminAuthenticated = false;
+            document.getElementById('logout-btn').classList.add('hidden');
+            document.getElementById('nav-admin-label').textContent = 'Panel Admin';
+            document.getElementById('login-username').value = '';
+            document.getElementById('login-password').value = '';
+            switchView('public');
+            showToast("Session administrateur fermée", "info");
+        }
+
+        // --- 8. ADMIN DASHBOARD & CRUD OPERATIONS ---
+        function updateGlobalMetrics() {
+            const totalFiles = filesData.length;
+            const totalDownloads = filesData.reduce((acc, item) => acc + (Number(item.downloads) || 0), 0);
+
+            const pubFiles = document.getElementById('public-stat-files');
+            const pubDl = document.getElementById('public-stat-downloads');
+            if (pubFiles) pubFiles.textContent = totalFiles;
+            if (pubDl) pubDl.textContent = totalDownloads.toLocaleString('fr-FR');
+        }
+
+        function renderAdminDashboard() {
+            updateGlobalMetrics();
+
+            const totalFiles = filesData.length;
+            const totalDownloads = filesData.reduce((acc, item) => acc + (Number(item.downloads) || 0), 0);
+
+            document.getElementById('admin-stat-count').textContent = totalFiles;
+            document.getElementById('admin-stat-downloads').textContent = totalDownloads.toLocaleString('fr-FR');
+            document.getElementById('admin-table-badge').textContent = `${totalFiles} entrée${totalFiles > 1 ? 's' : ''}`;
+
+            // Top file
+            if (filesData.length > 0) {
+                const top = [...filesData].sort((a, b) => b.downloads - a.downloads)[0];
+                document.getElementById('admin-stat-top-file').textContent = top.name;
+                document.getElementById('admin-stat-top-count').textContent = `${top.downloads.toLocaleString('fr-FR')} téléchargements`;
+            } else {
+                document.getElementById('admin-stat-top-file').textContent = "-";
+                document.getElementById('admin-stat-top-count').textContent = "0 téléchargement";
+            }
+
+            // Table rows
+            const tbody = document.getElementById('admin-files-tbody');
+            tbody.innerHTML = filesData.map(file => {
+                const badgeClass = getCategoryBadgeStyle(file.category);
+                return `
+                <tr class="hover:bg-zinc-900/40 transition-colors">
+                    <td class="py-3.5 px-4">
+                        <div class="font-mono text-xs font-medium text-white break-all">${escapeHtml(file.name)}</div>
+                        <div class="text-[11px] font-mono text-geist-muted mt-0.5">${escapeHtml(file.version)} • Ajouté le ${escapeHtml(file.date)}</div>
+                    </td>
+                    <td class="py-3.5 px-4">
+                        <span class="text-[11px] font-mono px-2 py-0.5 rounded-full border ${badgeClass}">
+                            ${escapeHtml(file.category)}
+                        </span>
+                    </td>
+                    <td class="py-3.5 px-4 font-mono text-xs text-zinc-300 whitespace-nowrap">${escapeHtml(file.size)}</td>
+                    <td class="py-3.5 px-4 font-mono text-xs text-white font-semibold">${file.downloads.toLocaleString('fr-FR')}</td>
+                    <td class="py-3.5 px-4 text-right whitespace-nowrap">
+                        <div class="inline-flex items-center space-x-1">
+                            <button onclick="openFileModal('${file.id}')" class="p-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors" title="Modifier">
+                                <i data-lucide="pencil" class="w-3.5 h-3.5"></i>
+                            </button>
+                            <button onclick="deleteFile('${file.id}')" class="p-1.5 rounded-lg text-zinc-400 hover:text-red-400 hover:bg-red-950/30 transition-colors" title="Supprimer">
+                                <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+                `;
+            }).join('');
+
+            // Stats Distribution Bars
+            const barsContainer = document.getElementById('admin-stats-bars');
+            const sortedByDl = [...filesData].sort((a, b) => b.downloads - a.downloads).slice(0, 6);
+            const maxDl = Math.max(...sortedByDl.map(f => f.downloads), 1);
+
+            barsContainer.innerHTML = sortedByDl.map(file => {
+                const pct = Math.round((file.downloads / maxDl) * 100);
+                return `
+                <div class="space-y-1">
+                    <div class="flex items-center justify-between text-xs font-mono">
+                        <span class="text-zinc-300 truncate max-w-[200px]">${escapeHtml(file.name)}</span>
+                        <span class="text-zinc-400">${file.downloads.toLocaleString('fr-FR')}</span>
+                    </div>
+                    <div class="w-full h-2 bg-black rounded-full overflow-hidden border border-zinc-800">
+                        <div class="h-full bg-white rounded-full" style="width: ${pct}%"></div>
+                    </div>
+                </div>
+                `;
+            }).join('');
+
+            lucide.createIcons();
+        }
+
+        function generateRandomSha256() {
+            const chars = '0123456789abcdef';
+            let hash = '';
+            for (let i = 0; i < 64; i++) {
+                hash += chars[Math.floor(Math.random() * chars.length)];
+            }
+            return hash;
+        }
+
+        function regenerateFormSha() {
+            document.getElementById('file-sha').value = generateRandomSha256();
+        }
+
+        function openFileModal(editId = null) {
+            const modal = document.getElementById('modal-file');
+            const title = document.getElementById('modal-file-title');
+            document.getElementById('dropzone-label').textContent = "Cliquez ou glissez un fichier ici pour extraire ses métadonnées";
+
+            if (editId) {
+                const file = filesData.find(f => f.id === editId);
+                if (!file) return;
+                title.textContent = "Modifier le fichier";
+                document.getElementById('file-id').value = file.id;
+                document.getElementById('file-name').value = file.name;
+                document.getElementById('file-version').value = file.version;
+                document.getElementById('file-category').value = file.category;
+                document.getElementById('file-size').value = file.size;
+                document.getElementById('file-ext').value = file.ext || '';
+                document.getElementById('file-desc').value = file.description;
+                document.getElementById('file-url').value = file.url || '#simulation';
+                document.getElementById('file-sha').value = file.sha256;
+            } else {
+                title.textContent = "Publier un nouveau fichier";
+                document.getElementById('form-file').reset();
+                document.getElementById('file-id').value = '';
+                document.getElementById('file-version').value = 'v1.0.0';
+                document.getElementById('file-url').value = '#simulation';
+                document.getElementById('file-sha').value = generateRandomSha256();
+            }
+
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function closeFileModal() {
+            const modal = document.getElementById('modal-file');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+
+        // Simulated Drag & Drop file metadata extraction
+        function handleDragOver(e) {
+            e.preventDefault();
+            document.getElementById('dropzone').classList.add('border-white', 'bg-zinc-900/50');
+        }
+
+        function handleDragLeave(e) {
+            e.preventDefault();
+            document.getElementById('dropzone').classList.remove('border-white', 'bg-zinc-900/50');
+        }
+
+        function handleDrop(e) {
+            e.preventDefault();
+            document.getElementById('dropzone').classList.remove('border-white', 'bg-zinc-900/50');
+            if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+                populateFromRealFile(e.dataTransfer.files[0]);
+            }
+        }
+
+        function handleFileSelect(e) {
+            if (e.target.files && e.target.files[0]) {
+                populateFromRealFile(e.target.files[0]);
+            }
+        }
+
+        function populateFromRealFile(fileObj) {
+            document.getElementById('file-name').value = fileObj.name;
+
+            // Format file size
+            const bytes = fileObj.size;
+            let sizeStr = '';
+            if (bytes >= 1048576) {
+                sizeStr = (bytes / 1048576).toFixed(1) + ' MB';
+            } else if (bytes >= 1024) {
+                sizeStr = (bytes / 1024).toFixed(1) + ' KB';
+            } else {
+                sizeStr = bytes + ' B';
+            }
+            document.getElementById('file-size').value = sizeStr;
+
+            // Extension
+            const dotIndex = fileObj.name.lastIndexOf('.');
+            if (dotIndex !== -1) {
+                document.getElementById('file-ext').value = fileObj.name.substring(dotIndex);
+            }
+
+            document.getElementById('file-sha').value = generateRandomSha256();
+            document.getElementById('dropzone-label').innerHTML = `<span class="text-emerald-400 font-mono">✓ Fichier analysé : ${escapeHtml(fileObj.name)} (${sizeStr})</span>`;
+            showToast("Métadonnées du fichier extraites automatiquement", "info");
+        }
+
+        function saveFile(e) {
+            e.preventDefault();
+            const id = document.getElementById('file-id').value;
+            const name = document.getElementById('file-name').value.trim();
+            const version = document.getElementById('file-version').value.trim();
+            const category = document.getElementById('file-category').value;
+            const size = document.getElementById('file-size').value.trim();
+            let ext = document.getElementById('file-ext').value.trim();
+            const description = document.getElementById('file-desc').value.trim();
+            const url = document.getElementById('file-url').value.trim() || '#simulation';
+            const sha256 = document.getElementById('file-sha').value.trim() || generateRandomSha256();
+
+            if (!ext && name.includes('.')) {
+                ext = name.substring(name.lastIndexOf('.'));
+            }
+
+            if (id) {
+                const index = filesData.findIndex(f => f.id === id);
+                if (index !== -1) {
+                    filesData[index] = {
+                        ...filesData[index],
+                        name,
+                        version,
+                        category,
+                        size,
+                        ext: ext || '.bin',
+                        description,
+                        url,
+                        sha256
+                    };
+                    showToast("Fichier mis à jour avec succès", "success");
+                }
+            } else {
+                const newFile = {
+                    id: 'nex-' + Date.now(),
+                    name,
+                    version,
+                    category,
+                    size,
+                    ext: ext || '.zip',
+                    description,
+                    sha256,
+                    downloads: 0,
+                    date: new Date().toISOString().split('T')[0],
+                    url
+                };
+                filesData.unshift(newFile);
+                showToast("Nouveau fichier ajouté au dépôt", "success");
+            }
+
+            saveFilesToStorage();
+            closeFileModal();
+            renderAdminDashboard();
+            renderPublicFiles();
+        }
+
+        function deleteFile(fileId) {
+            const target = filesData.find(f => f.id === fileId);
+            if (!target) return;
+            filesData = filesData.filter(f => f.id !== fileId);
+            saveFilesToStorage();
+            renderAdminDashboard();
+            renderPublicFiles();
+            showToast(`Fichier "${target.name}" supprimé`, "info");
+        }
+
+        function resetToDefaultData() {
+            filesData = JSON.parse(JSON.stringify(DEFAULT_FILES));
+            saveFilesToStorage();
+            renderAdminDashboard();
+            renderPublicFiles();
+            showToast("Catalogue restauré avec les fichiers de démonstration", "info");
+        }
+
+        // --- 9. VERCEL EXPORT HELPER MODAL ---
+        function openVercelModal() {
+            const modal = document.getElementById('modal-vercel');
+            const output = document.getElementById('vercel-json-output');
+            document.getElementById('export-count').textContent = filesData.length;
+            output.textContent = JSON.stringify(filesData, null, 2);
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function closeVercelModal() {
+            const modal = document.getElementById('modal-vercel');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+
+        function copyExportJson() {
+            const jsonStr = JSON.stringify(filesData, null, 2);
+            copyToClipboard(jsonStr);
+            showToast("Configuration JSON copiée dans le presse-papiers", "success");
+        }
+
+        function downloadJsonFile() {
+            const jsonStr = JSON.stringify(filesData, null, 2);
+            const blob = new Blob([jsonStr], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'nexdrop-files.json';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            showToast("Fichier nexdrop-files.json téléchargé", "success");
+        }
+
+        // --- 10. UTILITIES (CLIPBOARD, TOAST, ESCAPE) ---
+        function copyToClipboard(text) {
+            const textarea = document.createElement('textarea');
+            textarea.value = text;
+            textarea.style.position = 'fixed';
+            textarea.style.opacity = '0';
+            document.body.appendChild(textarea);
+            textarea.select();
+            try {
+                document.execCommand('copy');
+            } catch (err) {
+                console.error('Copy error', err);
+            }
+            document.body.removeChild(textarea);
+        }
+
+        function showToast(message, type = "info") {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            const borderColor = type === 'success' ? 'border-emerald-800/80' : 'border-zinc-700';
+            const iconHtml = type === 'success' 
+                ? `<i data-lucide="check-circle-2" class="w-4 h-4 text-emerald-400 shrink-0"></i>` 
+                : `<i data-lucide="terminal" class="w-4 h-4 text-blue-400 shrink-0"></i>`;
+
+            toast.className = `pointer-events-auto flex items-center space-x-2.5 bg-zinc-950/95 backdrop-blur-md border ${borderColor} text-white px-4 py-3 rounded-xl shadow-2xl text-xs font-medium transition-all duration-300`;
+            toast.innerHTML = `${iconHtml}<span>${escapeHtml(message)}</span>`;
+
+            container.appendChild(toast);
+            lucide.createIcons();
+
+            setTimeout(() => {
+                toast.classList.add('opacity-0', 'translate-y-2');
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
+        function escapeHtml(str) {
+            if (!str) return '';
+            return String(str)
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+    </script>
+</body>
+</html>
